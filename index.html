@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1a1512">
+<title>Тайна квартиры 47</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{
+  width:100%;height:100%;overflow:hidden;background:#000;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  touch-action:manipulation;overscroll-behavior:none;
+}
+#app{position:fixed;inset:0;overflow:hidden;}
+
+canvas#scene{
+  position:absolute;inset:0;
+  width:100%;height:100%;display:block;
+  z-index:1;
+}
+
+#hotspots{
+  position:absolute;inset:0;
+  pointer-events:none;
+  z-index:2;
+}
+.hotspot{
+  position:absolute;
+  pointer-events:auto;
+  cursor:pointer;
+  border-radius:12px;
+  transition:background 0.2s;
+}
+.hotspot.pulse{
+  animation:hotspotPulse 1.2s ease-in-out 2;
+}
+@keyframes hotspotPulse{
+  0%,100%{background:rgba(255,200,100,0);box-shadow:0 0 0 0 rgba(255,200,100,0);}
+  50%{background:rgba(255,200,100,0.15);box-shadow:0 0 0 6px rgba(255,200,100,0.4),0 0 30px rgba(255,200,100,0.3);}
+}
+
+/* TOP BAR */
+#topbar{
+  position:absolute;top:0;left:0;right:0;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 0;
+  display:flex;align-items:center;gap:8px;
+  z-index:10;
+  pointer-events:none;
+}
+#sceneName{
+  flex:1;
+  background:rgba(20,15,12,0.85);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(200,170,120,0.22);
+  border-radius:12px;
+  padding:8px 16px;
+  font-size:13px;font-weight:800;color:#e8d5b0;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  text-align:center;
+  pointer-events:none;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.topbar-btn{
+  pointer-events:auto;
+  width:42px;height:42px;
+  border:none;border-radius:12px;
+  background:rgba(20,15,12,0.85);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(200,170,120,0.22);
+  color:#e8d5b0;font-size:20px;
+  cursor:pointer;transition:transform 0.1s;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.topbar-btn:active{transform:scale(0.92);background:rgba(255,200,100,0.15);}
+
+/* DIALOGUE */
+#dialogue{
+  position:absolute;
+  left:12px;right:12px;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
+  background:linear-gradient(180deg,rgba(30,22,16,0.97),rgba(15,10,6,0.97));
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(200,170,120,0.35);
+  border-radius:16px;
+  padding:14px 18px;
+  color:#f0e0c0;
+  font-size:13px;line-height:1.5;font-weight:600;
+  z-index:15;
+  pointer-events:none;
+  opacity:0;transform:translateY(10px);
+  transition:opacity 0.25s,transform 0.25s;
+  box-shadow:0 12px 40px rgba(0,0,0,0.7);
+  max-height:120px;overflow:hidden;
+}
+#dialogue.show{opacity:1;transform:translateY(0);}
+#dialogue::before{
+  content:'💭';
+  position:absolute;
+  left:12px;top:-10px;
+  background:inherit;
+  border:1px solid rgba(200,170,120,0.35);
+  border-radius:50%;
+  width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;
+  padding-top:1px;
+}
+
+/* INVENTORY */
+#inventory{
+  position:absolute;
+  left:0;right:0;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+  padding:8px 10px;
+  z-index:12;
+  display:flex;
+  gap:6px;
+  justify-content:center;
+  pointer-events:none;
+  min-height:72px;
+}
+.inv-item{
+  pointer-events:auto;
+  width:64px;
+  background:linear-gradient(165deg,rgba(40,30,22,0.95),rgba(25,18,12,0.95));
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(200,170,120,0.3);
+  border-radius:12px;
+  padding:8px 4px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;
+  transition:all 0.15s;
+  box-shadow:0 4px 16px rgba(0,0,0,0.5);
+  flex-shrink:0;
+}
+.inv-item:active{transform:scale(0.94);}
+.inv-item.selected{
+  border-color:#ffc440;
+  box-shadow:0 0 20px rgba(255,196,64,0.5),inset 0 0 0 1px rgba(255,196,64,0.4);
+  background:linear-gradient(165deg,rgba(60,45,20,0.95),rgba(40,28,14,0.95));
+  transform:translateY(-4px);
+}
+.inv-icon{font-size:24px;line-height:1;}
+.inv-name{
+  font-size:8px;
+  font-weight:700;
+  color:#c8b08a;
+  text-align:center;
+  line-height:1.1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  max-width:100%;
+}
+.inv-item.selected .inv-name{color:#ffd97a;}
+
+.inv-empty{
+  color:#5a4a3a;
+  font-size:11px;
+  font-weight:600;
+  text-align:center;
+  padding:20px;
+  font-style:italic;
+}
+
+/* MODALS */
+.modal{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0.9);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  animation:fadeIn 0.25s;
+  overflow-y:auto;
+}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal.hidden{display:none;}
+
+.modal-content{
+  background:linear-gradient(165deg,#2a2018,#15100a);
+  border:1px solid rgba(200,170,120,0.35);
+  border-radius:20px;
+  padding:24px 22px;
+  max-width:380px;
+  width:100%;
+  box-shadow:0 24px 80px rgba(200,150,60,0.2);
+  animation:popIn 0.35s cubic-bezier(0.2,1.5,0.5,1);
+  max-height:85vh;
+  overflow-y:auto;
+  margin:auto;
+}
+@keyframes popIn{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+.modal-content h2{
+  font-size:19px;
+  font-weight:900;
+  color:#ffdf9b;
+  margin-bottom:10px;
+  text-align:center;
+}
+.modal-content p{
+  font-size:13px;
+  color:#b8a880;
+  line-height:1.6;
+  margin-bottom:14px;
+  text-align:center;
+}
+
+.code-display{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  margin:16px 0 20px;
+}
+.code-digit{
+  width:52px;height:64px;
+  background:rgba(0,0,0,0.5);
+  border:2px solid rgba(200,170,120,0.3);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;
+  font-weight:900;
+  color:#ffc440;
+  font-variant-numeric:tabular-nums;
+  transition:border-color 0.15s,box-shadow 0.15s;
+}
+.code-digit.active{
+  border-color:#ffc440;
+  box-shadow:0 0 20px rgba(255,196,64,0.4);
+}
+.code-digit.filled{
+  border-color:#52d399;
+  color:#52d399;
+}
+
+.num-pad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-bottom:14px;
+}
+.num-btn{
+  padding:16px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(200,170,120,0.2);
+  border-radius:12px;
+  color:#f0e0c0;
+  font-family:inherit;
+  font-size:20px;
+  font-weight:800;
+  cursor:pointer;
+  transition:all 0.1s;
+}
+.num-btn:active{
+  background:rgba(255,200,100,0.2);
+  border-color:#ffc440;
+  transform:scale(0.94);
+}
+.num-btn.wide{grid-column:span 1;}
+
+.modal-btn{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  font-family:inherit;
+  font-size:14px;
+  font-weight:900;
+  background:linear-gradient(180deg,#ffd97a,#dfa338);
+  color:#1a0a05;
+  cursor:pointer;
+  box-shadow:0 4px 16px rgba(255,185,64,0.35);
+  transition:transform 0.1s;
+  margin-top:8px;
+}
+.modal-btn:active{transform:scale(0.96);}
+.modal-btn.ghost{
+  background:rgba(255,255,255,0.08);
+  color:#f0e0c0;
+  box-shadow:none;
+  border:1px solid rgba(200,170,120,0.25);
+}
+
+/* MENU */
+.menu-list{
+  display:flex;flex-direction:column;gap:8px;margin:16px 0;
+}
+.menu-list button{
+  padding:14px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(200,170,120,0.2);
+  border-radius:12px;
+  color:#f0e0c0;
+  font-family:inherit;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.menu-list button:active{
+  background:rgba(255,200,100,0.15);
+  border-color:#ffc440;
+}
+
+/* WIN */
+.win-emoji{
+  font-size:56px;
+  text-align:center;
+  margin-bottom:12px;
+  display:block;
+}
+
+/* TOAST */
+.toast{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:rgba(30,22,16,0.97);
+  color:#f0e0c0;
+  padding:12px 22px;
+  border-radius:14px;
+  font-size:13px;
+  font-weight:700;
+  z-index:30;
+  border:1px solid #ffc440;
+  box-shadow:0 12px 40px rgba(0,0,0,0.7),0 0 30px rgba(255,196,64,0.3);
+  max-width:80vw;
+  text-align:center;
+  animation:toastAnim 2s forwards;
+  pointer-events:none;
+}
+@keyframes toastAnim{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.8);}
+  10%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  85%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(0.95);}
+}
+
+/* INTRO */
+.intro-card{
+  background:linear-gradient(165deg,#2a2018,#100a05);
+  border:1px solid rgba(200,170,120,0.35);
+  border-radius:22px;
+  padding:28px 24px;
+  max-width:380px;
+  text-align:center;
+  box-shadow:0 24px 80px rgba(200,150,60,0.25);
+  margin:auto;
+}
+.intro-card .emoji{
+  font-size:56px;
+  margin-bottom:12px;
+  display:block;
+  filter:drop-shadow(0 4px 20px rgba(255,200,100,0.4));
+}
+.intro-card h1{
+  font-size:24px;
+  font-weight:900;
+  color:#ffdf9b;
+  margin-bottom:8px;
+  letter-spacing:-0.01em;
+}
+.intro-card .subtitle{
+  font-size:11px;
+  color:#8a7a5a;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  font-weight:800;
+  margin-bottom:14px;
+}
+.intro-card p{
+  font-size:13px;
+  color:#b8a880;
+  line-height:1.6;
+  margin-bottom:16px;
+}
+.intro-card .howto{
+  background:rgba(255,200,100,0.08);
+  border:1px solid rgba(255,200,100,0.2);
+  border-radius:12px;
+  padding:12px 14px;
+  margin-bottom:16px;
+  text-align:left;
+  font-size:11px;
+  color:#c8b08a;
+  line-height:1.7;
+}
+.intro-card .howto strong{color:#ffc440;}
+.intro-card .howto .row{margin-bottom:4px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <canvas id="scene"></canvas>
+  <div id="hotspots"></div>
+
+  <div id="topbar">
+    <button class="topbar-btn" id="hintBtn" title="Подсказка">💡</button>
+    <div id="sceneName">Прихожая</div>
+    <button class="topbar-btn" id="menuBtn" title="Меню">☰</button>
+  </div>
+
+  <div id="dialogue"></div>
+  <div id="inventory"></div>
+
+  <!-- INTRO MODAL -->
+  <div class="modal" id="introModal">
+    <div class="intro-card">
+      <div class="emoji">🔍</div>
+      <h1>Тайна квартиры 47</h1>
+      <div class="subtitle">Point & Click детектив</div>
+      <p>Вы — частный детектив. В квартире 47 пропал человек. Найдите код от сейфа, чтобы раскрыть тайну.</p>
+      <div class="howto">
+        <div class="row">👆 <strong>Тапайте</strong> по предметам, чтобы осмотреть</div>
+        <div class="row">🎒 <strong>Собирайте</strong> предметы — они появятся внизу</div>
+        <div class="row">🎯 <strong>Выберите</strong> предмет в инвентаре, чтобы применить</div>
+        <div class="row">💡 <strong>Кнопка</strong> подскажет, где что есть</div>
+      </div>
+      <button class="modal-btn" id="startBtn">Начать расследование</button>
+    </div>
+  </div>
+
+  <!-- MENU MODAL -->
+  <div class="modal hidden" id="menuModal">
+    <div class="modal-content">
+      <h2>Меню</h2>
+      <div class="menu-list">
+        <button id="menuContinue">▶ Продолжить</button>
+        <button id="menuJournal">📖 Журнал улик</button>
+        <button id="menuRestart">🔄 Начать заново</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOURNAL MODAL -->
+  <div class="modal hidden" id="journalModal">
+    <div class="modal-content">
+      <h2>📖 Журнал улик</h2>
+      <div id="journalContent" style="margin:12px 0;font-size:13px;line-height:1.7;color:#c8b08a;"></div>
+      <button class="modal-btn" id="journalClose">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- SAFE MODAL -->
+  <div class="modal hidden" id="safeModal">
+    <div class="modal-content">
+      <h2>🔒 Сейф</h2>
+      <p>Введите 4-значный код</p>
+      <div class="code-display">
+        <div class="code-digit" id="d0"></div>
+        <div class="code-digit" id="d1"></div>
+        <div class="code-digit" id="d2"></div>
+        <div class="code-digit" id="d3"></div>
+      </div>
+      <div class="num-pad">
+        <button class="num-btn" data-num="1">1</button>
+        <button class="num-btn" data-num="2">2</button>
+        <button class="num-btn" data-num="3">3</button>
+        <button class="num-btn" data-num="4">4</button>
+        <button class="num-btn" data-num="5">5</button>
+        <button class="num-btn" data-num="6">6</button>
+        <button class="num-btn" data-num="7">7</button>
+        <button class="num-btn" data-num="8">8</button>
+        <button class="num-btn" data-num="9">9</button>
+        <button class="num-btn" data-num="C">C</button>
+        <button class="num-btn" data-num="0">0</button>
+        <button class="num-btn" data-num="OK">✓</button>
+      </div>
+      <button class="modal-btn ghost" id="safeCancel">Отмена</button>
+    </div>
+  </div>
+
+  <!-- WIN MODAL -->
+  <div class="modal hidden" id="winModal">
+    <div class="modal-content">
+      <span class="win-emoji">🏆</span>
+      <h2>Тайна раскрыта!</h2>
+      <p>В сейфе вы нашли документы, которые всё объясняют. Пропавший человек жив — он скрывался, потому что узнал опасную тайну. Вы передали материалы в полицию.</p>
+      <p style="color:#ffc440;font-weight:800;">🏅 Дело закрыто</p>
+      <button class="modal-btn" id="winRestart">Играть снова</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ==================== CANVAS ==================== */
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+
+function resize(){
+  W = window.innerWidth;
+  H = window.innerHeight;
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  redraw();
+}
+
+/* ==================== STATE ==================== */
+const SAVE_KEY = 'pointclick_47_v1';
+
+let state = {
+  scene: 'hallway',
+  inventory: [],
+  flags: {},
+  journal: [],
+  won: false
+};
+
+let selectedItem = null;
+let dialogueTimer = null;
+
+/* ==================== SAVE/LOAD ==================== */
+function save(){
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch(e){}
+}
+function load(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    state.scene = d.scene || 'hallway';
+    state.inventory = d.inventory || [];
+    state.flags = d.flags || {};
+    state.journal = d.journal || [];
+    state.won = d.won || false;
+    return true;
+  } catch(e){ return false; }
+}
+
+/* ==================== DRAWING HELPERS ==================== */
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawWall(wallColor1, wallColor2, patternColor){
+  const wallH = H * 0.68;
+  const grad = ctx.createLinearGradient(0, 0, 0, wallH);
+  grad.addColorStop(0, wallColor1);
+  grad.addColorStop(1, wallColor2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, wallH);
+
+  // Wallpaper pattern
+  ctx.strokeStyle = patternColor || 'rgba(255,220,150,0.04)';
+  ctx.lineWidth = 1;
+  const step = Math.max(28, W * 0.08);
+  for (let x = 0; x < W; x += step){
+    for (let y = 0; y < wallH; y += step){
+      ctx.beginPath();
+      ctx.moveTo(x + step * 0.3, y + step * 0.15);
+      ctx.lineTo(x + step * 0.7, y + step * 0.15);
+      ctx.lineTo(x + step * 0.5, y + step * 0.45);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+}
+
+function drawFloor(){
+  const wallH = H * 0.68;
+  const floorH = H - wallH;
+  const grad = ctx.createLinearGradient(0, wallH, 0, H);
+  grad.addColorStop(0, '#4a3525');
+  grad.addColorStop(0.5, '#3a2818');
+  grad.addColorStop(1, '#1e1208');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, wallH, W, floorH);
+
+  // Perspective planks
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  const lines = 8;
+  for (let i = 1; i < lines; i++){
+    const t = i / lines;
+    // Horizontal (perspective depth lines)
+    const y = wallH + floorH * t * t;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+  // Vertical planks
+  for (let i = 0; i <= 12; i++){
+    const xTop = (i / 12) * W;
+    // Vanishing point convergence
+    const centerX = W / 2;
+    const xBot = centerX + (xTop - centerX) * 1.3;
+    ctx.beginPath();
+    ctx.moveTo(xTop, wallH);
+    ctx.lineTo(xBot, H);
+    ctx.stroke();
+  }
+
+  // Baseboard
+  ctx.fillStyle = '#2a1d10';
+  ctx.fillRect(0, wallH - 8, W, 8);
+  ctx.fillStyle = 'rgba(255,200,100,0.1)';
+  ctx.fillRect(0, wallH - 8, W, 2);
+}
+
+function drawDoor(x, y, w, h, options){
+  options = options || {};
+  const doorColor = options.doorColor || '#3d2a1a';
+  const frameColor = options.frameColor || '#6b4a2a';
+  const knobColor = options.knobColor || '#d4af37';
+  const openGap = options.openGap || false;
+
+  // Frame
+  ctx.fillStyle = frameColor;
+  roundRect(x - 4, y - 4, w + 8, h + 8, 6);
+  ctx.fill();
+
+  // Door panel
+  ctx.fillStyle = doorColor;
+  roundRect(x, y, w, h, 3);
+  ctx.fill();
+
+  // Door panels (decorative rectangles)
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + w * 0.12, y + h * 0.08, w * 0.76, h * 0.35);
+  ctx.strokeRect(x + w * 0.12, y + h * 0.55, w * 0.76, h * 0.35);
+
+  // Knob
+  ctx.fillStyle = knobColor;
+  ctx.beginPath();
+  ctx.arc(x + w - 12, y + h * 0.5, 5, 0, Math.PI * 2);
+  ctx.fill();
+  // Knob highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath();
+  ctx.arc(x + w - 13, y + h * 0.5 - 1, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Keyhole / lock
+  if (options.keyhole){
+    ctx.fillStyle = '#1a1008';
+    ctx.beginPath();
+    ctx.arc(x + w - 12, y + h * 0.5 + 8, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Light from underneath if open
+  if (openGap){
+    const g = ctx.createLinearGradient(0, y + h - 4, 0, y + h + 4);
+    g.addColorStop(0, 'rgba(255,220,120,0.5)');
+    g.addColorStop(1, 'rgba(255,220,120,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x + 2, y + h, w - 4, 4);
+  }
+}
+
+function drawFrame(x, y, w, h, frameColor, innerDrawFn){
+  // Outer frame with bevel
+  ctx.fillStyle = frameColor;
+  roundRect(x - 4, y - 4, w + 8, h + 8, 4);
+  ctx.fill();
+
+  // Inner frame edge
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
+
+  // Canvas inside
+  innerDrawFn(x, y, w, h);
+}
+
+/* ==================== SCENE: HALLWAY ==================== */
+function drawHallway(){
+  drawWall('#5a4636', '#3d2f22', 'rgba(255,200,120,0.05)');
+  drawFloor();
+
+  // Warm lamp glow from top
+  const lampGlow = ctx.createRadialGradient(W*0.5, 0, 0, W*0.5, 0, H*0.5);
+  lampGlow.addColorStop(0, 'rgba(255,200,100,0.25)');
+  lampGlow.addColorStop(1, 'rgba(255,200,100,0)');
+  ctx.fillStyle = lampGlow;
+  ctx.fillRect(0, 0, W, H*0.68);
+
+  // Entry door (decorative, left)
+  drawDoor(W*0.04, H*0.28, W*0.16, H*0.42, {
+    doorColor: '#3a2515',
+    frameColor: '#5a4028',
+    knobColor: '#b89230',
+    keyhole: true
+  });
+
+  // Coat rack (center-left)
+  const rackX = W*0.30;
+  const rackY = H*0.28;
+  // Pole
+  ctx.fillStyle = '#4a3520';
+  ctx.fillRect(rackX + W*0.05 - 2, rackY, 4, H*0.42);
+  // Hooks
+  ctx.strokeStyle = '#4a3520';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(rackX + W*0.05, rackY + H*0.02);
+  ctx.lineTo(rackX + W*0.02, rackY + H*0.04);
+  ctx.moveTo(rackX + W*0.05, rackY + H*0.02);
+  ctx.lineTo(rackX + W*0.08, rackY + H*0.04);
+  ctx.stroke();
+
+  // Coat
+  ctx.fillStyle = '#5a2e1e';
+  ctx.beginPath();
+  ctx.moveTo(rackX + W*0.01, rackY + H*0.04);
+  ctx.lineTo(rackX + W*0.09, rackY + H*0.04);
+  ctx.lineTo(rackX + W*0.10, rackY + H*0.28);
+  ctx.quadraticCurveTo(rackX + W*0.09, rackY + H*0.32, rackX + W*0.07, rackY + H*0.30);
+  ctx.lineTo(rackX + W*0.05, rackY + H*0.29);
+  ctx.lineTo(rackX + W*0.03, rackY + H*0.30);
+  ctx.quadraticCurveTo(rackX + W*0.01, rackY + H*0.32, rackX, rackY + H*0.28);
+  ctx.closePath();
+  ctx.fill();
+
+  // Coat shading
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(rackX + W*0.05, rackY + H*0.04);
+  ctx.lineTo(rackX + W*0.05, rackY + H*0.29);
+  ctx.stroke();
+
+  // Coat pocket (darker rectangle)
+  ctx.fillStyle = '#3d1a0e';
+  ctx.fillRect(rackX + W*0.02, rackY + H*0.18, W*0.055, H*0.025);
+
+  // Mirror (center)
+  const mx = W*0.50, my = H*0.18, mw = W*0.14, mh = H*0.20;
+  ctx.fillStyle = '#6a5a4a';
+  roundRect(mx - 4, my - 4, mw + 8, mh + 8, 3);
+  ctx.fill();
+  // Frame edge
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mx - 2, my - 2, mw + 4, mh + 4);
+  // Mirror glass
+  const mg = ctx.createLinearGradient(mx, my, mx + mw, my + mh);
+  mg.addColorStop(0, '#7a98a8');
+  mg.addColorStop(0.4, '#a8c8d8');
+  mg.addColorStop(0.5, '#d0e8f0');
+  mg.addColorStop(0.6, '#a8c8d8');
+  mg.addColorStop(1, '#6a8898');
+  ctx.fillStyle = mg;
+  roundRect(mx, my, mw, mh, 2);
+  ctx.fill();
+  // Shine
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(mx + mw*0.15, my + mh*0.15);
+  ctx.lineTo(mx + mw*0.35, my + mh*0.6);
+  ctx.stroke();
+
+  // Living room door (right)
+  drawDoor(W*0.72, H*0.28, W*0.20, H*0.42, {
+    doorColor: '#4a3520',
+    frameColor: '#6a4a28',
+    knobColor: '#d4af37',
+    openGap: true
+  });
+
+  // Rug (on floor)
+  const rugX = W*0.28, rugY = H*0.80, rugW = W*0.44, rugH = H*0.13;
+  ctx.fillStyle = '#6a2820';
+  roundRect(rugX, rugY, rugW, rugH, 6);
+  ctx.fill();
+  // Rug pattern
+  ctx.strokeStyle = '#a85040';
+  ctx.lineWidth = 2;
+  roundRect(rugX + 8, rugY + 6, rugW - 16, rugH - 12, 3);
+  ctx.stroke();
+  ctx.strokeStyle = '#d09070';
+  ctx.beginPath();
+  ctx.moveTo(rugX + rugW*0.15, rugY + rugH/2);
+  ctx.lineTo(rugX + rugW*0.85, rugY + rugH/2);
+  ctx.moveTo(rugX + rugW/2, rugY + rugH*0.2);
+  ctx.lineTo(rugX + rugW/2, rugY + rugH*0.8);
+  ctx.stroke();
+  // Corner flipped up
+  if (!state.flags.rugRaised){
+    ctx.fillStyle = '#3a1410';
+    ctx.beginPath();
+    ctx.moveTo(rugX + rugW - 20, rugY);
+    ctx.lineTo(rugX + rugW, rugY - 8);
+    ctx.lineTo(rugX + rugW, rugY + 20);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Vignette
+  const vign = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.85);
+  vign.addColorStop(0, 'rgba(0,0,0,0)');
+  vign.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vign;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/* ==================== SCENE: LIVING ==================== */
+function drawLiving(){
+  drawWall('#3a4a5a', '#1e2a35', 'rgba(150,200,255,0.04)');
+  drawFloor();
+
+  // Cool window light
+  const windowGlow = ctx.createRadialGradient(W*0.55, H*0.15, 0, W*0.55, H*0.15, H*0.5);
+  windowGlow.addColorStop(0, 'rgba(180,220,255,0.2)');
+  windowGlow.addColorStop(1, 'rgba(180,220,255,0)');
+  ctx.fillStyle = windowGlow;
+  ctx.fillRect(0, 0, W, H*0.68);
+
+  // Two windows (center-top)
+  const winY = H*0.15, winH = H*0.25;
+  const winW = W*0.13;
+  const winGap = W*0.04;
+  const winStartX = W*0.42;
+
+  for (let i = 0; i < 2; i++){
+    const winX = winStartX + i * (winW + winGap);
+    // Window frame
+    ctx.fillStyle = '#5a4a3a';
+    roundRect(winX - 3, winY - 3, winW + 6, winH + 6, 4);
+    ctx.fill();
+    // Glass
+    const wg = ctx.createLinearGradient(winX, winY, winX + winW, winY + winH);
+    wg.addColorStop(0, '#2a3a4a');
+    wg.addColorStop(0.5, '#5a7a9a');
+    wg.addColorStop(1, '#3a5a7a');
+    ctx.fillStyle = wg;
+    roundRect(winX, winY, winW, winH, 2);
+    ctx.fill();
+    // Window cross
+    ctx.strokeStyle = '#5a4a3a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(winX + winW/2, winY);
+    ctx.lineTo(winX + winW/2, winY + winH);
+    ctx.moveTo(winX, winY + winH/2);
+    ctx.lineTo(winX + winW, winY + winH/2);
+    ctx.stroke();
+    // Stars in window
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    for (let s = 0; s < 3; s++){
+      const sx = winX + 8 + Math.random() * (winW - 16);
+      const sy = winY + 8 + Math.random() * (winH - 16);
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Bookshelf (left)
+  const bsX = W*0.04, bsY = H*0.30, bsW = W*0.22, bsH = H*0.42;
+  // Shelf back
+  ctx.fillStyle = '#2a1d10';
+  ctx.fillRect(bsX, bsY, bsW, bsH);
+  // Shelves
+  ctx.fillStyle = '#4a3520';
+  for (let i = 0; i <= 4; i++){
+    ctx.fillRect(bsX, bsY + (bsH / 4) * i - 2, bsW, 5);
+  }
+  // Books
+  const bookColors = ['#8a3020', '#3a5a3a', '#2a3a5a', '#5a3a1a', '#4a2a4a', '#3a3a4a'];
+  for (let row = 0; row < 4; row++){
+    const rowY = bsY + (bsH / 4) * row + 4;
+    const rowH = (bsH / 4) - 8;
+    let bx = bsX + 4;
+    while (bx < bsX + bsW - 15){
+      const bw = 8 + Math.random() * 8;
+      const bh = rowH * (0.6 + Math.random() * 0.4);
+      const col = bookColors[Math.floor(Math.random() * bookColors.length)];
+      ctx.fillStyle = col;
+      ctx.fillRect(bx, rowY + (rowH - bh), bw, bh);
+      // Book spine line
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(bx + bw - 2, rowY + (rowH - bh) + 2, 1, bh - 4);
+      bx += bw + 2;
+    }
+  }
+  // One special book sticking out (hint)
+  if (!state.flags.bookTaken){
+    ctx.fillStyle = '#c8a850';
+    ctx.fillRect(bsX + bsW - 18, bsY + (bsH / 4) * 1 + 6, 14, (bsH / 4) - 12);
+    ctx.fillStyle = 'rgba(255,220,120,0.4)';
+    ctx.fillRect(bsX + bsW - 18, bsY + (bsH / 4) * 1 + 6, 14, 3);
+  }
+
+  // Painting / Safe (center-right wall)
+  const paintX = W*0.72, paintY = H*0.28, paintW = W*0.20, paintH = H*0.22;
+
+  if (!state.flags.paintingMoved){
+    // Painting in frame
+    drawFrame(paintX, paintY, paintW, paintH, '#a08050', (x, y, w, h) => {
+      // Landscape painting
+      const pg = ctx.createLinearGradient(x, y, x, y + h);
+      pg.addColorStop(0, '#c8a060');
+      pg.addColorStop(0.5, '#8a6a3a');
+      pg.addColorStop(1, '#4a3520');
+      ctx.fillStyle = pg;
+      ctx.fillRect(x, y, w, h);
+      // Sun
+      ctx.fillStyle = '#ffd97a';
+      ctx.beginPath();
+      ctx.arc(x + w*0.7, y + h*0.3, w*0.1, 0, Math.PI * 2);
+      ctx.fill();
+      // Trees
+      ctx.fillStyle = '#2a3a1a';
+      ctx.beginPath();
+      ctx.moveTo(x + w*0.15, y + h);
+      ctx.lineTo(x + w*0.25, y + h*0.55);
+      ctx.lineTo(x + w*0.35, y + h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + w*0.4, y + h);
+      ctx.lineTo(x + w*0.48, y + h*0.6);
+      ctx.lineTo(x + w*0.56, y + h);
+      ctx.closePath();
+      ctx.fill();
+      // Ground
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(x, y + h * 0.85, w, h * 0.15);
+    });
+  } else {
+    // Safe revealed
+    const safeColor = '#3a3a4a';
+    // Safe body
+    ctx.fillStyle = safeColor;
+    roundRect(paintX, paintY, paintW, paintH, 4);
+    ctx.fill();
+    // Safe door
+    ctx.fillStyle = '#2a2a3a';
+    roundRect(paintX + 4, paintY + 4, paintW - 8, paintH - 8, 3);
+    ctx.fill();
+    // Safe handle
+    ctx.fillStyle = '#a0a0a8';
+    ctx.beginPath();
+    ctx.arc(paintX + paintW/2, paintY + paintH/2, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#3a3a4a';
+    ctx.beginPath();
+    ctx.arc(paintX + paintW/2, paintY + paintH/2, 8, 0, Math.PI * 2);
+    ctx.fill();
+    // Spokes
+    ctx.strokeStyle = '#a0a0a8';
+    ctx.lineWidth = 2;
+    for (let a = 0; a < 4; a++){
+      const ang = a * Math.PI / 2 + 0.4;
+      ctx.beginPath();
+      ctx.moveTo(paintX + paintW/2 + Math.cos(ang) * 4, paintY + paintH/2 + Math.sin(ang) * 4);
+      ctx.lineTo(paintX + paintW/2 + Math.cos(ang) * 12, paintY + paintH/2 + Math.sin(ang) * 12);
+      ctx.stroke();
+    }
+    // Dial
+    ctx.fillStyle = '#1a1a2a';
+    ctx.beginPath();
+    ctx.arc(paintX + paintW*0.5, paintY + paintH*0.82, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#a0a0a8';
+    for (let d = 0; d < 8; d++){
+      const ang = d * Math.PI / 4;
+      ctx.beginPath();
+      ctx.arc(paintX + paintW*0.5 + Math.cos(ang) * 5, paintY + paintH*0.82 + Math.sin(ang) * 5, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Painting leaning against wall to the side
+    ctx.save();
+    ctx.translate(paintX - 20, paintY + paintH - 30);
+    ctx.rotate(-0.3);
+    ctx.fillStyle = '#a08050';
+    ctx.fillRect(-20, -25, 40, 50);
+    ctx.fillStyle = '#4a3520';
+    ctx.fillRect(-18, -23, 36, 46);
+    ctx.restore();
+  }
+
+  // Sofa (bottom-left)
+  const sofaX = W*0.04, sofaY = H*0.55, sofaW = W*0.42, sofaH = H*0.18;
+  // Sofa back
+  ctx.fillStyle = '#3a2a5a';
+  roundRect(sofaX + 6, sofaY - 6, sofaW - 12, sofaH * 0.55, 10);
+  ctx.fill();
+  // Sofa seat
+  ctx.fillStyle = '#4a3a6a';
+  roundRect(sofaX, sofaY + sofaH * 0.35, sofaW, sofaH * 0.5, 12);
+  ctx.fill();
+  // Armrests
+  ctx.fillStyle = '#3a2a5a';
+  roundRect(sofaX - 4, sofaY + sofaH * 0.25, 16, sofaH * 0.65, 8);
+  ctx.fill();
+  roundRect(sofaX + sofaW - 12, sofaY + sofaH * 0.25, 16, sofaH * 0.65, 8);
+  ctx.fill();
+  // Cushions
+  ctx.fillStyle = '#5a4a7a';
+  roundRect(sofaX + 20, sofaY + sofaH*0.38, 30, 18, 8);
+  ctx.fill();
+  roundRect(sofaX + sofaW - 50, sofaY + sofaH*0.38, 30, 18, 8);
+  ctx.fill();
+
+  // Door to bedroom (far right) and door back to hallway (hidden, use hotspot)
+
+  // Back to hallway door (small, top-right corner)
+  drawDoor(W*0.92, H*0.28, W*0.06, H*0.35, {
+    doorColor: '#2a1d10',
+    frameColor: '#4a3520',
+    knobColor: '#b89230'
+  });
+
+  // Vignette
+  const vign = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.85);
+  vign.addColorStop(0, 'rgba(0,0,0,0)');
+  vign.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vign;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/* ==================== SCENE: BEDROOM ==================== */
+function drawBedroom(){
+  drawWall('#4a3a4a', '#2a1e2a', 'rgba(200,150,255,0.04)');
+  drawFloor();
+
+  // Dim lamp glow
+  const lampGlow = ctx.createRadialGradient(W*0.75, H*0.35, 0, W*0.75, H*0.35, H*0.35);
+  lampGlow.addColorStop(0, 'rgba(255,180,100,0.3)');
+  lampGlow.addColorStop(1, 'rgba(255,180,100,0)');
+  ctx.fillStyle = lampGlow;
+  ctx.fillRect(0, 0, W, H*0.68);
+
+  // Wardrobe (left)
+  const wardX = W*0.05, wardY = H*0.28, wardW = W*0.22, wardH = H*0.44;
+  ctx.fillStyle = '#3a2010';
+  roundRect(wardX, wardY, wardW, wardH, 3);
+  ctx.fill();
+  // Doors
+  ctx.fillStyle = '#4a2818';
+  roundRect(wardX + 3, wardY + 3, wardW/2 - 6, wardH - 6, 2);
+  ctx.fill();
+  roundRect(wardX + wardW/2 + 3, wardY + 3, wardW/2 - 6, wardH - 6, 2);
+  ctx.fill();
+  // Handles
+  ctx.fillStyle = '#c8a850';
+  ctx.beginPath();
+  ctx.arc(wardX + wardW/2 - 6, wardY + wardH/2, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(wardX + wardW/2 + 6, wardY + wardH/2, 4, 0, Math.PI * 2);
+  ctx.fill();
+  // Keyhole
+  if (!state.flags.wardrobeOpen){
+    ctx.fillStyle = '#1a0a05';
+    ctx.beginPath();
+    ctx.arc(wardX + wardW/2 - 6, wardY + wardH/2 + 12, 2, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // Open door - show inside
+    ctx.fillStyle = '#1a0a05';
+    roundRect(wardX + 3, wardY + 3, wardW - 6, wardH - 6, 2);
+    ctx.fill();
+    // Hanging clothes
+    ctx.fillStyle = '#5a2a1a';
+    ctx.fillRect(wardX + 10, wardY + 10, 8, wardH - 25);
+    ctx.fillStyle = '#2a3a5a';
+    ctx.fillRect(wardX + 22, wardY + 10, 8, wardH - 25);
+    ctx.fillStyle = '#4a4a3a';
+    ctx.fillRect(wardX + 34, wardY + 10, 8, wardH - 25);
+  }
+
+  // Portrait on wall (center)
+  const portraitX = W*0.36, portraitY = H*0.20, portraitW = W*0.16, portraitH = H*0.20;
+  drawFrame(portraitX, portraitY, portraitW, portraitH, '#8a6a3a', (x, y, w, h) => {
+    // Old man's face
+    const pg = ctx.createLinearGradient(x, y, x, y + h);
+    pg.addColorStop(0, '#4a3a2a');
+    pg.addColorStop(1, '#2a1a0a');
+    ctx.fillStyle = pg;
+    ctx.fillRect(x, y, w, h);
+    // Face
+    ctx.fillStyle = '#c8a880';
+    ctx.beginPath();
+    ctx.ellipse(x + w/2, y + h*0.45, w*0.25, h*0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Hair
+    ctx.fillStyle = '#8a7050';
+    ctx.beginPath();
+    ctx.ellipse(x + w/2, y + h*0.28, w*0.27, h*0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Eyes
+    ctx.fillStyle = '#1a0a05';
+    ctx.beginPath();
+    ctx.arc(x + w*0.42, y + h*0.42, 2, 0, Math.PI * 2);
+    ctx.arc(x + w*0.58, y + h*0.42, 2, 0, Math.PI * 2);
+    ctx.fill();
+    // Mustache
+    ctx.fillStyle = '#5a4a3a';
+    ctx.beginPath();
+    ctx.ellipse(x + w/2, y + h*0.55, w*0.13, h*0.03, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Suit
+    ctx.fillStyle = '#3a2a1a';
+    ctx.fillRect(x + w*0.2, y + h*0.7, w*0.6, h*0.3);
+    // Year inscription (bottom)
+    ctx.fillStyle = 'rgba(255,220,120,0.6)';
+    ctx.font = 'bold ' + Math.max(8, w*0.09) + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('1981', x + w/2, y + h - 4);
+  });
+
+  // Bed (bottom-center)
+  const bedX = W*0.30, bedY = H*0.58, bedW = W*0.45, bedH = H*0.22;
+  // Headboard
+  ctx.fillStyle = '#3a2515';
+  roundRect(bedX, bedY - 15, bedW, 20, 6);
+  ctx.fill();
+  // Mattress
+  ctx.fillStyle = '#5a5a6a';
+  roundRect(bedX, bedY + 3, bedW, bedH, 8);
+  ctx.fill();
+  // Blanket
+  ctx.fillStyle = '#4a3a6a';
+  roundRect(bedX - 3, bedY + bedH * 0.25, bedW + 6, bedH * 0.75, 8);
+  ctx.fill();
+  // Pillow
+  ctx.fillStyle = '#e8e0d0';
+  roundRect(bedX + 8, bedY - 4, bedW * 0.35, 22, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Nightstand (right)
+  const nsX = W*0.78, nsY = H*0.50, nsW = W*0.16, nsH = H*0.18;
+  ctx.fillStyle = '#3a2010';
+  roundRect(nsX, nsY, nsW, nsH, 3);
+  ctx.fill();
+  // Drawer line
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(nsX + 4, nsY + nsH/2);
+  ctx.lineTo(nsX + nsW - 4, nsY + nsH/2);
+  ctx.stroke();
+  // Drawer knob
+  ctx.fillStyle = '#c8a850';
+  ctx.beginPath();
+  ctx.arc(nsX + nsW/2, nsY + nsH * 0.75, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Clock on nightstand
+  const clockX = nsX + nsW/2, clockY = nsY - 18, clockR = 18;
+  // Clock body
+  ctx.fillStyle = '#3a2a1a';
+  ctx.beginPath();
+  ctx.arc(clockX, clockY, clockR + 2, 0, Math.PI * 2);
+  ctx.fill();
+  // Clock face
+  ctx.fillStyle = '#e8e0d0';
+  ctx.beginPath();
+  ctx.arc(clockX, clockY, clockR, 0, Math.PI * 2);
+  ctx.fill();
+  // Numbers (small marks)
+  ctx.fillStyle = '#1a0a05';
+  for (let h = 0; h < 12; h++){
+    const a = h * Math.PI / 6 - Math.PI / 2;
+    ctx.beginPath();
+    ctx.arc(clockX + Math.cos(a) * clockR * 0.8, clockY + Math.sin(a) * clockR * 0.8, 1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Clock hands: 7:00 (hour at 7, minute at 12)
+  ctx.strokeStyle = '#1a0a05';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  // Hour hand (7 o'clock)
+  const hourAngle = (7 / 12) * Math.PI * 2 - Math.PI / 2;
+  ctx.beginPath();
+  ctx.moveTo(clockX, clockY);
+  ctx.lineTo(clockX + Math.cos(hourAngle) * clockR * 0.5, clockY + Math.sin(hourAngle) * clockR * 0.5);
+  ctx.stroke();
+  // Minute hand (12)
+  ctx.beginPath();
+  ctx.moveTo(clockX, clockY);
+  ctx.lineTo(clockX, clockY - clockR * 0.7);
+  ctx.stroke();
+  // Center
+  ctx.fillStyle = '#1a0a05';
+  ctx.beginPath();
+  ctx.arc(clockX, clockY, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Door back to living (right edge)
+  drawDoor(W*0.92, H*0.28, W*0.06, H*0.35, {
+    doorColor: '#3a2010',
+    frameColor: '#5a4028',
+    knobColor: '#b89230'
+  });
+
+  // Vignette
+  const vign = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.85);
+  vign.addColorStop(0, 'rgba(0,0,0,0)');
+  vign.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = vign;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/* ==================== SCENE DATA ==================== */
+const SCENES = {
+  hallway: {
+    name: 'Прихожая',
+    draw: drawHallway,
+    hotspots: () => [
+      { id: 'coat', x: 28, y: 26, w: 18, h: 42, name: 'Пальто' },
+      { id: 'rug', x: 26, y: 78, w: 48, h: 16, name: 'Коврик' },
+      { id: 'mirror', x: 48, y: 16, w: 16, h: 24, name: 'Зеркало' },
+      { id: 'entryDoor', x: 3, y: 26, w: 18, h: 45, name: 'Входная дверь' },
+      { id: 'doorLiving', x: 71, y: 26, w: 22, h: 45, name: 'Дверь в гостиную', goto: 'living' }
+    ]
+  },
+  living: {
+    name: 'Гостиная',
+    draw: drawLiving,
+    hotspots: () => {
+      const base = [
+        { id: 'bookshelf', x: 3, y: 28, w: 24, h: 46, name: 'Книжный шкаф' },
+        { id: 'windows', x: 41, y: 14, w: 32, h: 27, name: 'Окна' },
+        { id: 'sofa', x: 3, y: 52, w: 44, h: 24, name: 'Диван' },
+        { id: 'doorHall', x: 91, y: 26, w: 8, h: 38, name: 'В прихожую', goto: 'hallway' },
+        { id: 'doorBedroom', x: 78, y: 55, w: 18, h: 20, name: 'Дверь в спальню', goto: 'bedroom' }
+      ];
+      if (!state.flags.paintingMoved){
+        base.push({ id: 'painting', x: 71, y: 27, w: 22, h: 24, name: 'Картина' });
+      } else {
+        base.push({ id: 'safe', x: 71, y: 27, w: 22, h: 24, name: 'Сейф' });
+      }
+      return base;
+    }
+  },
+  bedroom: {
+    name: 'Спальня',
+    draw: drawBedroom,
+    hotspots: () => [
+      { id: 'wardrobe', x: 4, y: 26, w: 24, h: 48, name: 'Шкаф' },
+      { id: 'portrait', x: 34, y: 18, w: 20, h: 24, name: 'Портрет' },
+      { id: 'bed', x: 28, y: 55, w: 48, h: 28, name: 'Кровать' },
+      { id: 'clock', x: 78, y: 44, w: 16, h: 12, name: 'Часы' },
+      { id: 'doorBack', x: 91, y: 26, w: 8, h: 38, name: 'В гостиную', goto: 'living' }
+    ]
+  }
+};
+
+/* ==================== REDRAW ==================== */
+function redraw(){
+  const scene = SCENES[state.scene];
+  if (!scene) return;
+  ctx.clearRect(0, 0, W, H);
+  scene.draw();
+}
+
+/* ==================== HOTSPOTS ==================== */
+function renderHotspots(){
+  const container = document.getElementById('hotspots');
+  container.innerHTML = '';
+  const scene = SCENES[state.scene];
+  if (!scene) return;
+
+  const hotspots = scene.hotspots();
+  for (const h of hotspots){
+    const el = document.createElement('div');
+    el.className = 'hotspot';
+    el.style.left = h.x + '%';
+    el.style.top = h.y + '%';
+    el.style.width = h.w + '%';
+    el.style.height = h.h + '%';
+    el.dataset.id = h.id;
+    el.addEventListener('click', () => onHotspotClick(h));
+    container.appendChild(el);
+  }
+}
+
+function pulseHotspots(){
+  const hotspots = document.querySelectorAll('.hotspot');
+  hotspots.forEach((h, i) => {
+    setTimeout(() => {
+      h.classList.add('pulse');
+      setTimeout(() => h.classList.remove('pulse'), 2500);
+    }, i * 100);
+  });
+}
+
+/* ==================== HOTSPOT ACTIONS ==================== */
+const ACTIONS = {
+  coat: () => {
+    if (state.flags.coatSearched){
+      say('Больше ничего интересного в карманах нет.');
+      return;
+    }
+    state.flags.coatSearched = true;
+    addItem('note', '📝', 'Записка');
+    say('В кармане пальто — записка: «Первая цифра — сколько окон в гостиной»');
+    addJournal('Записка из пальто: «Первая цифра — сколько окон в гостиной»');
+    save();
+  },
+  rug: () => {
+    if (state.flags.rugRaised){
+      say('Под ковриком уже пусто.');
+      return;
+    }
+    state.flags.rugRaised = true;
+    addItem('key', '🔑', 'Ключ');
+    say('Под ковриком — старый ключ. От чего бы он мог быть?');
+    addJournal('Ключ под ковриком в прихожей');
+    redraw();
+    save();
+  },
+  mirror: () => {
+    say('В зеркале отражается уставший детектив. На раме — гравировка: «1981»');
+    addJournal('На зеркале выгравировано: «1981»');
+    save();
+  },
+  entryDoor: () => {
+    say('Входная дверь заперта снаружи. Обратной дороги нет — только вперёд.');
+  },
+  doorLiving: () => {
+    changeScene('living');
+  },
+  bookshelf: () => {
+    if (state.flags.bookTaken){
+      say('Книги. Ничего особенного.');
+      return;
+    }
+    state.flags.bookTaken = true;
+    addItem('book', '📖', 'Книга');
+    say('На полке — старая книга. На закладке глава 4.');
+    addJournal('Книга на полке — закладка на главе 4');
+    redraw();
+    save();
+  },
+  windows: () => {
+    if (state.flags.windowsCounted){
+      say('Два окна. Я уже записал.');
+      return;
+    }
+    state.flags.windowsCounted = true;
+    say('Два окна. Оба выходят на восток. Итак, первая цифра — 2.');
+    addJournal('В гостиной два окна → первая цифра: 2');
+    save();
+  },
+  sofa: () => {
+    say('Обычный диван. Под подушками ничего нет.');
+  },
+  painting: () => {
+    state.flags.paintingMoved = true;
+    say('Под картиной обнаружен встроенный сейф с кодовым замком!');
+    addJournal('За картиной в гостиной — сейф с кодовым замком');
+    redraw();
+    renderHotspots();
+    save();
+  },
+  safe: () => {
+    showSafeModal();
+  },
+  doorHall: () => {
+    changeScene('hallway');
+  },
+  doorBedroom: () => {
+    changeScene('bedroom');
+  },
+  wardrobe: () => {
+    if (state.flags.wardrobeOpen){
+      say('Шкаф открыт. Внутри — старая одежда.');
+      return;
+    }
+    if (!hasItem('key')){
+      say('Шкаф заперт. Нужен ключ.');
+      return;
+    }
+    state.flags.wardrobeOpen = true;
+    addItem('magnifier', '🔍', 'Лупа');
+    say('Ключ подошёл! В шкафу, под одеждой, я нашёл лупу.');
+    addJournal('В шкафу — лупа');
+    redraw();
+    renderHotspots();
+    save();
+  },
+  portrait: () => {
+    if (hasItem('magnifier')){
+      say('На портрете подпись: «1981». Четвёртая цифра — 1.');
+      addJournal('Портрет в спальне: подпись «1981» → четвёртая цифра: 1');
+      save();
+    } else {
+      say('Старый портрет мужчины. Внизу что-то написано, но слишком мелко. Нужна лупа.');
+    }
+  },
+  bed: () => {
+    say('Обычная кровать. Кто-то спал здесь совсем недавно.');
+  },
+  clock: () => {
+    if (hasItem('magnifier')){
+      say('Через лупу видно: часы остановились на 7:00. Вторая цифра — 7.');
+      addJournal('Часы остановились на 7:00 → вторая цифра: 7');
+      save();
+    } else {
+      say('Часы остановились. Стрелки слишком малы, чтобы разглядеть точно.');
+    }
+  },
+  doorBack: () => {
+    changeScene('living');
+  }
+};
+
+/* ==================== CLICK HANDLING ==================== */
+function onHotspotClick(hotspot){
+  if (selectedItem){
+    // Try to use item
+    const action = ACTIONS[hotspot.id];
+    if (action){
+      // Re-run with item context (still calls action, but item may be used)
+      // For simplicity, we just call the action again
+      selectedItem = null;
+      renderInventory();
+      action();
+      return;
+    }
+    say('Это здесь не пригодится.');
+    return;
+  }
+
+  // Normal action
+  const action = ACTIONS[hotspot.id];
+  if (action){
+    action();
+  } else if (hotspot.goto){
+    changeScene(hotspot.goto);
+  }
+}
+
+/* ==================== SCENE CHANGE ==================== */
+function changeScene(name){
+  state.scene = name;
+  selectedItem = null;
+  renderInventory();
+  redraw();
+  renderHotspots();
+  document.getElementById('sceneName').textContent = SCENES[name].name;
+  save();
+
+  // Pulse hotspots after scene load
+  setTimeout(pulseHotspots, 300);
+}
+
+/* ==================== DIALOGUE ==================== */
+function say(text, dur){
+  const el = document.getElementById('dialogue');
+  el.textContent = text;
+  el.classList.add('show');
+  if (dialogueTimer) clearTimeout(dialogueTimer);
+  dialogueTimer = setTimeout(() => el.classList.remove('show'), dur || 3200);
+}
+
+/* ==================== INVENTORY ==================== */
+function addItem(id, icon, name){
+  if (hasItem(id)) return;
+  state.inventory.push({ id, icon, name });
+  renderInventory();
+  save();
+}
+
+function hasItem(id){
+  return state.inventory.some(i => i.id === id);
+}
+
+function renderInventory(){
+  const container = document.getElementById('inventory');
+  container.innerHTML = '';
+  if (state.inventory.length === 0){
+    container.innerHTML = '<div class="inv-empty">Инвентарь пуст</div>';
+    return;
+  }
+  for (const item of state.inventory){
+    const el = document.createElement('div');
+    el.className = 'inv-item' + (selectedItem === item.id ? ' selected' : '');
+    el.innerHTML = `<span class="inv-icon">${item.icon}</span><span class="inv-name">${item.name}</span>`;
+    el.addEventListener('click', () => {
+      if (selectedItem === item.id){
+        selectedItem = null;
+      } else {
+        selectedItem = item.id;
+      }
+      renderInventory();
+    });
+    container.appendChild(el);
+  }
+}
+
+/* ==================== JOURNAL ==================== */
+function addJournal(text){
+  if (!state.journal.includes(text)){
+    state.journal.push(text);
+  }
+}
+
+function showJournal(){
+  const content = document.getElementById('journalContent');
+  if (state.journal.length === 0){
+    content.innerHTML = '<em style="color:#6a5a3a;">Пока нет записей. Осматривайте предметы!</em>';
+  } else {
+    content.innerHTML = state.journal.map(j => '• ' + j).join('<br>');
+  }
+  document.getElementById('journalModal').classList.remove('hidden');
+}
+
+/* ==================== SAFE MODAL ==================== */
+let safeInput = '';
+const SAFE_CODE = '2741';
+
+function showSafeModal(){
+  safeInput = '';
+  updateSafeDisplay();
+  document.getElementById('safeModal').classList.remove('hidden');
+}
+
+function updateSafeDisplay(){
+  for (let i = 0; i < 4; i++){
+    const el = document.getElementById('d' + i);
+    el.textContent = safeInput[i] || '';
+    el.classList.remove('active', 'filled');
+    if (safeInput[i] !== undefined){
+      el.classList.add('filled');
+    } else if (i === safeInput.length){
+      el.classList.add('active');
+    }
+  }
+}
+
+document.querySelectorAll('.num-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const n = btn.dataset.num;
+    if (n === 'C'){
+      safeInput = '';
+      updateSafeDisplay();
+    } else if (n === 'OK'){
+      if (safeInput === SAFE_CODE){
+        document.getElementById('safeModal').classList.add('hidden');
+        setTimeout(winGame, 400);
+      } else {
+        safeInput = '';
+        updateSafeDisplay();
+        // Shake effect
+        const modal = document.querySelector('#safeModal .modal-content');
+        modal.style.animation = 'none';
+        void modal.offsetWidth;
+        modal.style.animation = 'popIn 0.35s cubic-bezier(0.2,1.5,0.5,1)';
+        // Show error
+        toast('❌ Неверный код');
+      }
+    } else {
+      if (safeInput.length < 4){
+        safeInput += n;
+        updateSafeDisplay();
+      }
+    }
+  });
+});
+
+document.getElementById('safeCancel').addEventListener('click', () => {
+  document.getElementById('safeModal').classList.add('hidden');
+});
+
+/* ==================== WIN ==================== */
+function winGame(){
+  state.won = true;
+  save();
+  document.getElementById('winModal').classList.remove('hidden');
+}
+
+/* ==================== TOAST ==================== */
+let toastTimer = null;
+function toast(text){
+  const old = document.querySelector('.toast');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = text;
+  document.getElementById('app').appendChild(el);
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 2200);
+}
+
+/* ==================== BUTTONS ==================== */
+document.getElementById('hintBtn').addEventListener('click', () => {
+  pulseHotspots();
+});
+
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('menuModal').classList.remove('hidden');
+});
+
+document.getElementById('menuContinue').addEventListener('click', () => {
+  document.getElementById('menuModal').classList.add('hidden');
+});
+
+document.getElementById('menuJournal').addEventListener('click', () => {
+  document.getElementById('menuModal').classList.add('hidden');
+  showJournal();
+});
+
+document.getElementById('menuRestart').addEventListener('click', () => {
+  if (confirm('Начать заново? Весь прогресс будет утерян.')){
+    try { localStorage.removeItem(SAVE_KEY); } catch(e){}
+    state = { scene: 'hallway', inventory: [], flags: {}, journal: [], won: false };
+    document.getElementById('menuModal').classList.add('hidden');
+    changeScene('hallway');
+    renderInventory();
+    say('Начинаем заново. Тапайте по предметам!');
+  }
+});
+
+document.getElementById('journalClose').addEventListener('click', () => {
+  document.getElementById('journalModal').classList.add('hidden');
+});
+
+document.getElementById('winRestart').addEventListener('click', () => {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e){}
+  state = { scene: 'hallway', inventory: [], flags: {}, journal: [], won: false };
+  document.getElementById('winModal').classList.add('hidden');
+  changeScene('hallway');
+  renderInventory();
+});
+
+/* ==================== START ==================== */
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('introModal').classList.add('hidden');
+  startGame();
+});
+
+function startGame(){
+  const loaded = load();
+  if (loaded && state.won){
+    // Already won - show win screen
+    document.getElementById('winModal').classList.remove('hidden');
+    return;
+  }
+  changeScene(state.scene);
+  renderInventory();
+
+  if (!loaded){
+    setTimeout(() => say('Я в квартире 47. Нужно найти код от сейфа. Начну с осмотра.'), 800);
+  } else {
+    setTimeout(() => say('Продолжаем расследование...'), 500);
+  }
+}
+
+function init(){
+  resize();
+  window.addEventListener('resize', () => {
+    resize();
+    renderHotspots();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) save();
+  });
+  window.addEventListener('beforeunload', save);
+
+  renderInventory();
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>
